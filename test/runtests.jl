@@ -3,6 +3,7 @@ using ShiftShares
 
 using CSV
 using CodecZlib: GzipDecompressorStream
+using DataFrames
 using FixedEffectModels
 using ShiftShares: datafile
 

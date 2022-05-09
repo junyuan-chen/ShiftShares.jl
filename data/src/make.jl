@@ -10,19 +10,25 @@ using CSV, CodecZlib, DataFrames, ReadStatTables
 
 function adh()
     cols = [:czone, :year, :y, :x, :z, :wei, :l_sh_routine33, :t2, :Lsh_manuf]
-    lfile = DataFrame(readstat("data/location_level.dta", usecols=cols))
-    lfile.czone = convert(Vector{Int}, lfile.czone)
-    lfile.year = convert(Vector{Int}, lfile.year)
+    loc = DataFrame(readstat("data/location_level.dta", usecols=cols))
+    loc.czone = convert(Vector{Int}, loc.czone)
+    loc.year = convert(Vector{Int}, loc.year)
     open(GzipCompressorStream, "data/adh_location.csv.gz", "w") do stream
-        CSV.write(stream, lfile)
+        CSV.write(stream, loc)
     end
-    sfile = DataFrame(readstat("data/Lshares.dta"))
-    sfile = sfile[sfile.ind_share.!=0,:]
-    sfile.czone = convert(Vector{Int}, sfile.czone)
-    sfile.year = convert(Vector{Int}, sfile.year)
-    sfile.sic87dd = convert(Vector{Int}, sfile.sic87dd)
+    shares = DataFrame(readstat("data/Lshares.dta"))
+    shares = shares[shares.ind_share.!=0,:]
+    shares.czone = convert(Vector{Int}, shares.czone)
+    shares.year = convert(Vector{Int}, shares.year)
+    shares.sic87dd = convert(Vector{Int}, shares.sic87dd)
     open(GzipCompressorStream, "data/adh_share.csv.gz", "w") do stream
-        CSV.write(stream, sfile)
+        CSV.write(stream, shares)
+    end
+    shocks = DataFrame(readstat("data/shocks.dta", usecols=[:year,:sic87dd,:g]))
+    shocks.year = convert(Vector{Int}, shocks.year)
+    shocks.sic87dd = convert(Vector{Int}, shocks.sic87dd)
+    open(GzipCompressorStream, "data/adh_shock.csv.gz", "w") do stream
+        CSV.write(stream, shocks)
     end
 end
 
