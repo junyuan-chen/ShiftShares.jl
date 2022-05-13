@@ -1,12 +1,46 @@
 module ShiftShares
 
-using DataFrames: AbstractDataFrame, DataFrame, innerjoin, groupby, combine, rename!
+using DataFrames: AbstractDataFrame, DataFrame, innerjoin, leftjoin!, groupby, combine, rename!
 using FixedEffectModels
 
-export ssagg
+export bartik, ssagg
 
 const TermOrTerms = Union{AbstractTerm, Tuple{AbstractTerm, Vararg{AbstractTerm}}}
 const TupleTerm = Tuple{TermOrTerms, Vararg{TermOrTerms}}
+
+"""
+    bartik(ldf, shares, gdf, varnames, l_id, n_on, sharename::Symbol; prefix=:b)
+
+Construct shift-share variables with shares being `sharename` from `shares`
+and shifts being `varnames` from `gdf`.
+Results are merged with `ldf`.
+
+# Arguments
+- `ldf`: a data frame for the sample.
+- `shares`: a data frame for the exposure shares.
+- `gdf`: a data frame for the shock-level sample.
+- `varnames`: column names for variables from `gdf` that are used as shifts.
+- `l_id`: column name(s) that define the level of observations in `ldf`.
+- `n_on`: column name(s) used for joinning `shares` and `gdf`.
+- `sharename`: column name of the exposure shares in `shares`.
+
+# Keyword
+- `prefix::Symbol=:b`: prefix for the column names of the constructed variables.
+"""
+function bartik(ldf, shares, gdf, varnames, l_id, n_on, sharename::Symbol; prefix::Symbol=:b)
+    ldf = DataFrame(ldf, copycols=false)
+    shares = DataFrame(shares, copycols=false)
+    gdf = DataFrame(gdf, copycols=false)
+    varnames isa Symbol && (varnames = (varnames,))
+    sdf = innerjoin(shares, gdf, on=n_on)
+    for v in varnames
+        sdf[!,Symbol(prefix,v)] = sdf[!,v] .* sdf[!,sharename]
+    end
+    g = groupby(sdf, l_id)
+    ss = combine(g, map(x->Symbol(prefix,x)=>sum, varnames)..., renamecols=false)
+    leftjoin!(ldf, ss, on=l_id)
+    return ldf
+end
 
 function _partial_out(df, varnames, @nospecialize(lhs), @nospecialize(rhs), weightname)
     f = lhs ~ rhs

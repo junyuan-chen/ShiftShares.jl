@@ -2,6 +2,13 @@ ldf = exampledata(:adh_location)
 sdf = exampledata(:adh_share)
 gdf = exampledata(:adh_shock)
 
+@testset "bartik" begin
+    b = bartik(ldf, sdf, gdf, :g, [:czone,:year], [:sic87dd,:year], :ind_share, prefix=:b_)
+    @test b.b_g[1] ≈ b.z[1] atol=1e-7
+    @test b.b_g[10] ≈ b.z[10] atol=1e-7
+    @test ismissing(b[(b.czone.==27604).&(b.year.==1990),:b_g][1])
+end
+
 @testset "ADH" begin
     vars = (:y, :x, :z, :l_sh_routine33)
     df = ssagg(ldf, sdf, vars, [:czone,:year], [:sic87dd,:year], :ind_share,
